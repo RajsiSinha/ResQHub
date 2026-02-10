@@ -8,6 +8,8 @@ import ResponderDashboard from "./pages/responder/ResponderDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import History from "./pages/victim/History";
+import Map from "./pages/victim/Map";
+import Resources from "./pages/victim/Resources";
 
 function App() {
   return (
@@ -53,6 +55,24 @@ function App() {
             element={
               <ProtectedRoute allowedRole="victim">
                  <History />
+               </ProtectedRoute>
+             }
+          />
+           
+           <Route
+            path="/victim/map"
+            element={
+              <ProtectedRoute allowedRole="victim">
+                 <Map />
+               </ProtectedRoute>
+             }
+          />
+
+          <Route
+            path="/victim/resources"
+            element={
+              <ProtectedRoute allowedRole="victim">
+                 <Resources />
                </ProtectedRoute>
              }
           />
