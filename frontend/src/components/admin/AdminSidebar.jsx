@@ -1,4 +1,26 @@
+import { Link, useLocation } from "react-router-dom";
+
 export default function AdminSidebar() {
+  const location = useLocation();
+
+  const navItem = (path, label) => {
+    const active = location.pathname === path;
+
+    return (
+      <Link
+        to={path}
+        className={`block px-4 py-3 rounded-lg text-sm font-medium transition-all
+        ${
+          active
+            ? "bg-blue-600/20 text-blue-400"
+            : "text-slate-400 hover:bg-[#162435]"
+        }`}
+      >
+        {label}
+      </Link>
+    );
+  };
+
   return (
     <div className="w-72 bg-[#0f1b2a] border-r border-blue-500/10 flex flex-col justify-between">
 
@@ -15,25 +37,11 @@ export default function AdminSidebar() {
 
         <nav className="px-4 mt-6 space-y-2">
 
-          <div className="bg-blue-600/20 text-blue-400 px-4 py-3 rounded-lg font-semibold">
-            Command Center
-          </div>
-
-          <div className="px-4 py-3 rounded-lg text-slate-400 hover:bg-[#162435] cursor-pointer">
-            Victim Registry
-          </div>
-
-          <div className="px-4 py-3 rounded-lg text-slate-400 hover:bg-[#162435] cursor-pointer">
-            Responders
-          </div>
-
-          <div className="px-4 py-3 rounded-lg text-slate-400 hover:bg-[#162435] cursor-pointer">
-            Deep Analytics
-          </div>
-
-          <div className="px-4 py-3 rounded-lg text-slate-400 hover:bg-[#162435] cursor-pointer">
-            Zone Management
-          </div>
+          {navItem("/admin/dashboard", "Command Center")}
+          {navItem("/admin/victim-registry", "Victim Registry")}
+          {navItem("/admin/responders", "Responders")}
+          {navItem("/admin/deep-analytics", "Deep Analytics")}
+          {navItem("/admin/zone-management", "Zone Management")}
 
         </nav>
       </div>

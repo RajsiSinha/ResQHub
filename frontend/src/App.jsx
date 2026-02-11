@@ -14,7 +14,12 @@ import Map from "./pages/victim/Map";
 import Resources from "./pages/victim/Resources";
 
 import ResponderDashboard from "./pages/responder/ResponderDashboard";
+
 import CommandCenter from "./pages/admin/CommandCenter";
+import VictimRegistry from "./pages/admin/VictimRegistry";
+import Responders from "./pages/admin/Responders";
+import DeepAnalytics from "./pages/admin/DeepAnalytics";
+import ZoneManagement from "./pages/admin/ZoneManagement";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -27,7 +32,7 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      {/* ================= VICTIM (MainLayout) ================= */}
+      {/* ================= VICTIM ================= */}
       <Route
         element={
           <ProtectedRoute>
@@ -95,6 +100,10 @@ function App() {
       >
         <Route index element={<CommandCenter />} />
         <Route path="dashboard" element={<CommandCenter />} />
+        <Route path="victim-registry" element={<VictimRegistry />} />
+        <Route path="responders" element={<Responders />} />
+        <Route path="deep-analytics" element={<DeepAnalytics />} />
+        <Route path="zone-management" element={<ZoneManagement />} />
       </Route>
 
       {/* FALLBACK */}
