@@ -3,46 +3,77 @@ import { createContext, useContext, useState, useEffect } from "react";
 const IncidentContext = createContext();
 
 export function IncidentProvider({ children }) {
-  const [incidents, setIncidents] = useState([]);
 
+  // 🔥 LOAD FROM LOCALSTORAGE ON START
+  const [incidents, setIncidents] = useState(() => {
+  return JSON.parse(localStorage.getItem("incidents")) || [];
+});
+
+
+  // 🔥 AUTO SAVE TO LOCALSTORAGE
+  useEffect(() => {
+    localStorage.setItem("incidents", JSON.stringify(incidents));
+  }, [incidents]);
+
+  // 🟢 ADD INCIDENT
   const addIncident = (incident) => {
     setIncidents((prev) => [
       ...prev,
       {
         ...incident,
         id: `INC-${Date.now()}`,
-        status: incident.status || "PENDING",
+        status: "PENDING",
+        assignedTo: null,
         createdAt: new Date(),
       },
     ]);
   };
 
-  const updateStatus = (id, newStatus) => {
+  // 🟡 UPDATE STATUS (ASSIGN / RESOLVE)
+  const updateStatus = (id, newStatus, responderName = null) => {
     setIncidents((prev) =>
       prev.map((inc) =>
-        inc.id === id ? { ...inc, status: newStatus } : inc
+        inc.id === id
+          ? {
+              ...inc,
+              status: newStatus,
+              assignedTo:
+                newStatus === "ASSIGNED"
+                  ? responderName
+                  : inc.assignedTo,
+            }
+          : inc
       )
     );
   };
 
+  // 🔴 REMOVE INCIDENT
   const removeIncident = (id) => {
-    setIncidents((prev) => prev.filter((inc) => inc.id !== id));
+    setIncidents((prev) =>
+      prev.filter((inc) => inc.id !== id)
+    );
   };
 
-  // 🔁 GLOBAL AUTO-SYNC WHEN INTERNET RETURNS
+  // 🔁 OFFLINE SYNC
   useEffect(() => {
+
     const handleOnline = () => {
       const offlineIncidents =
         JSON.parse(localStorage.getItem("offlineIncidents")) || [];
 
       if (offlineIncidents.length === 0) return;
 
-      offlineIncidents.forEach((incident) => {
-        addIncident({
+      setIncidents((prev) => [
+        ...prev,
+        ...offlineIncidents.map((incident) => ({
           ...incident,
+          id: `INC-${Date.now()}`,
+          status: "PENDING",
+          assignedTo: null,
           synced: true,
-        });
-      });
+          createdAt: new Date(),
+        })),
+      ]);
 
       localStorage.removeItem("offlineIncidents");
 
@@ -54,6 +85,7 @@ export function IncidentProvider({ children }) {
     return () => {
       window.removeEventListener("online", handleOnline);
     };
+
   }, []);
 
   return (

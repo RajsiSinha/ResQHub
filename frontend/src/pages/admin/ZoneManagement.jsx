@@ -1,44 +1,83 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   MapContainer,
   TileLayer,
   Rectangle,
   Popup,
 } from "react-leaflet";
+import { useIncidents } from "../../context/IncidentContext";
 import "leaflet/dist/leaflet.css";
 
 export default function ZoneManagement() {
-  const [zones, setZones] = useState([
-    {
-      id: "ZONE-1",
-      name: "Sector Alpha",
-      bounds: [
-        [28.60, 77.18],
-        [28.62, 77.21],
-      ],
-      level: "SAFE",
-    },
-    {
-      id: "ZONE-2",
-      name: "Sector Bravo",
-      bounds: [
-        [28.63, 77.22],
-        [28.65, 77.25],
-      ],
-      level: "ALERT",
-    },
-    {
-      id: "ZONE-3",
-      name: "Sector Charlie",
-      bounds: [
-        [28.59, 77.23],
-        [28.61, 77.26],
-      ],
-      level: "CRITICAL",
-    },
-  ]);
+  const { incidents } = useIncidents();
+
+  const [zones, setZones] = useState(() => {
+    const stored = localStorage.getItem("zones");
+    return stored
+      ? JSON.parse(stored)
+      : [
+          {
+            id: "ZONE-1",
+            name: "Sector Alpha",
+            bounds: [
+              [28.60, 77.18],
+              [28.62, 77.21],
+            ],
+          },
+          {
+            id: "ZONE-2",
+            name: "Sector Bravo",
+            bounds: [
+              [28.63, 77.22],
+              [28.65, 77.25],
+            ],
+          },
+          {
+            id: "ZONE-3",
+            name: "Sector Charlie",
+            bounds: [
+              [28.59, 77.23],
+              [28.61, 77.26],
+            ],
+          },
+        ];
+  });
 
   const [selectedZone, setSelectedZone] = useState(null);
+
+  // ================= PERSIST ZONES =================
+  useEffect(() => {
+    localStorage.setItem("zones", JSON.stringify(zones));
+  }, [zones]);
+
+  // ================= COUNT INCIDENTS PER ZONE =================
+  const zonesWithStats = useMemo(() => {
+    return zones.map((zone) => {
+      const count = incidents.filter((incident) => {
+        if (!incident.location) return false;
+
+        const { lat, lng } = incident.location;
+        const [[minLat, minLng], [maxLat, maxLng]] = zone.bounds;
+
+        return (
+          lat >= minLat &&
+          lat <= maxLat &&
+          lng >= minLng &&
+          lng <= maxLng
+        );
+      }).length;
+
+      let level = "SAFE";
+      if (count >= 6) level = "CRITICAL";
+      else if (count >= 3) level = "ALERT";
+
+      return {
+        ...zone,
+        incidentCount: count,
+        level,
+      };
+    });
+  }, [zones, incidents]);
 
   const levelColor = (level) => {
     switch (level) {
@@ -51,14 +90,6 @@ export default function ZoneManagement() {
       default:
         return "blue";
     }
-  };
-
-  const updateZoneLevel = (id, newLevel) => {
-    setZones((prev) =>
-      prev.map((z) =>
-        z.id === id ? { ...z, level: newLevel } : z
-      )
-    );
   };
 
   const deleteZone = (id) => {
@@ -74,22 +105,21 @@ export default function ZoneManagement() {
         [28.60 + Math.random() * 0.05, 77.18 + Math.random() * 0.05],
         [28.62 + Math.random() * 0.05, 77.21 + Math.random() * 0.05],
       ],
-      level: "SAFE",
     };
+
     setZones((prev) => [...prev, newZone]);
   };
 
   return (
     <div className="space-y-8">
 
-      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-white">
-            Zone Management
+            Zone Intelligence Panel
           </h1>
           <p className="text-slate-400 text-sm">
-            Interactive disaster zone control panel.
+            Live zone-based disaster monitoring.
           </p>
         </div>
 
@@ -113,10 +143,9 @@ export default function ZoneManagement() {
           >
             <TileLayer
               url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              attribution="&copy; OpenStreetMap"
             />
 
-            {zones.map((zone) => (
+            {zonesWithStats.map((zone) => (
               <Rectangle
                 key={zone.id}
                 bounds={zone.bounds}
@@ -126,6 +155,10 @@ export default function ZoneManagement() {
                   fillOpacity: 0.3,
                   weight:
                     selectedZone?.id === zone.id ? 4 : 2,
+                  dashArray:
+                    zone.level === "CRITICAL"
+                      ? "5, 5"
+                      : null,
                 }}
                 eventHandlers={{
                   click: () => setSelectedZone(zone),
@@ -135,13 +168,13 @@ export default function ZoneManagement() {
                   <div>
                     <h3 className="font-bold">{zone.name}</h3>
                     <p>Status: {zone.level}</p>
+                    <p>Incidents: {zone.incidentCount}</p>
                   </div>
                 </Popup>
               </Rectangle>
             ))}
 
           </MapContainer>
-
         </div>
 
         {/* RIGHT PANEL */}
@@ -149,7 +182,7 @@ export default function ZoneManagement() {
 
           {!selectedZone ? (
             <p className="text-slate-400 text-sm">
-              Click on a zone to manage it.
+              Click on a zone to view live statistics.
             </p>
           ) : (
             <div className="space-y-6">
@@ -162,29 +195,45 @@ export default function ZoneManagement() {
                 </p>
               </div>
 
-              {/* Change Level */}
               <div>
-                <label className="text-xs text-slate-400">
-                  Risk Level
-                </label>
-
-                <select
-                  value={selectedZone.level}
-                  onChange={(e) =>
-                    updateZoneLevel(
-                      selectedZone.id,
-                      e.target.value
-                    )
+                <p className="text-sm text-slate-400">
+                  Live Incident Count
+                </p>
+                <h3 className="text-3xl font-bold text-white">
+                  {
+                    zonesWithStats.find(
+                      (z) => z.id === selectedZone.id
+                    )?.incidentCount
                   }
-                  className="w-full mt-2 bg-[#162435] px-3 py-2 rounded-lg text-sm"
-                >
-                  <option value="SAFE">SAFE</option>
-                  <option value="ALERT">ALERT</option>
-                  <option value="CRITICAL">CRITICAL</option>
-                </select>
+                </h3>
               </div>
 
-              {/* Delete */}
+              <div>
+                <p className="text-sm text-slate-400">
+                  Risk Level
+                </p>
+                <h3
+                  className={`text-xl font-bold ${
+                    zonesWithStats.find(
+                      (z) => z.id === selectedZone.id
+                    )?.level === "CRITICAL"
+                      ? "text-red-500 animate-pulse"
+                      : zonesWithStats.find(
+                          (z) =>
+                            z.id === selectedZone.id
+                        )?.level === "ALERT"
+                      ? "text-orange-400"
+                      : "text-green-400"
+                  }`}
+                >
+                  {
+                    zonesWithStats.find(
+                      (z) => z.id === selectedZone.id
+                    )?.level
+                  }
+                </h3>
+              </div>
+
               <button
                 onClick={() => deleteZone(selectedZone.id)}
                 className="w-full bg-red-600 hover:bg-red-700 py-2 rounded-lg text-sm font-semibold"
