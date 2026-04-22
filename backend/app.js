@@ -29,6 +29,10 @@ app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
 app.use("/api", apiLimiter);
 
+app.get("/", (req, res) => {
+  res.send("ResQHub API is running....");
+});
+
 app.get("/health", (req, res) => {
   res.status(200).json({
     success: true,

@@ -217,12 +217,30 @@ export default function ResponderDashboard() {
                 )}
 
                 {/* LOCATION */}
-                {incident.location && (
-                  <p className="text-[11px] text-blue-300 mt-2">
-                    📍 {incident.location.manual || "GPS Location Provided"}
-                  </p>
-                )}
+{incident.location ? (
+  <div className="text-[11px] text-blue-300 mt-2">
 
+    <p>
+      📍 {incident.location.manual || "GPS Location Provided"}
+    </p>
+
+    {incident.location?.lat != null && incident.location?.lng != null && (
+      <a
+        href={`https://www.google.com/maps?q=${incident.location.lat},${incident.location.lng}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-400 underline hover:text-blue-200"
+      >
+        View on Map
+      </a>
+    )}
+
+  </div>
+) : (
+  <p className="text-[11px] text-slate-500 mt-2">
+    Location not available
+  </p>
+)}
                 {/* ACTION BUTTONS */}
                 {incident.status === "ASSIGNED" &&
                   incident.assignedTo === currentResponder?.name && (
