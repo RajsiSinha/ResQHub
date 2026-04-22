@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import logo from "../../assets/logo.png";
 
 export default function Register() {
+  const API_BASE_URL = "http://localhost:5000/api";
   const [role, setRole] = useState("victim");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -10,7 +11,7 @@ export default function Register() {
 
   const navigate = useNavigate();
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
 
     if (!name || !email || !password) {
@@ -23,30 +24,42 @@ export default function Register() {
       return;
     }
 
-    const users = JSON.parse(localStorage.getItem("users")) || [];
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, password, role }),
+      });
 
-    const userExists = users.find((u) => u.email === email);
+      const payload = await res.json().catch(() => ({}));
 
-    if (userExists) {
-      alert("User already exists.");
-      return;
+      if (!res.ok) {
+        throw new Error(payload?.message || "Registration failed.");
+      }
+
+      const user = payload?.data?.user;
+      if (user) {
+        const stored = JSON.parse(localStorage.getItem("users") || "[]");
+        const idx = stored.findIndex((u) => u.email === user.email);
+        if (idx >= 0) {
+          stored[idx] = { ...stored[idx], ...user };
+        } else {
+          stored.push(user);
+        }
+        localStorage.setItem("users", JSON.stringify(stored));
+      }
+
+      alert("Account created successfully.");
+      navigate("/login");
+    } catch (err) {
+      const msg =
+        err?.message === "Failed to fetch"
+          ? "Network error. Please try again."
+          : err?.message || "Registration failed.";
+      alert(msg);
     }
-
-    const newUser = {
-      id: Date.now(),
-      name,
-      email,
-      password,
-      role, // victim / volunteer / ngo / authority
-    };
-
-    localStorage.setItem(
-      "users",
-      JSON.stringify([...users, newUser])
-    );
-
-    alert("Account created successfully.");
-    navigate("/login");
   };
 
   return (

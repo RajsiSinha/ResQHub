@@ -3,24 +3,55 @@ import { useIncidents } from "../../context/IncidentContext";
 
 export default function Responders() {
   const [responders, setResponders] = useState([]);
+  const [loadingResponders, setLoadingResponders] = useState(false);
+  const [respondersError, setRespondersError] = useState(null);
+  const [selectedAssigneeByIncidentId, setSelectedAssigneeByIncidentId] = useState(
+    {}
+  );
   const { incidents, overrideAssign } = useIncidents();
+  const API_BASE_URL = "http://localhost:5000/api";
 
   // ================= LOAD RESPONDERS =================
   useEffect(() => {
-    const users = JSON.parse(localStorage.getItem("users")) || [];
+    const loadResponders = async () => {
+      setLoadingResponders(true);
+      setRespondersError(null);
 
-    const responderUsers = users
-      .filter((u) =>
-        ["responder", "volunteer", "ngo", "authority"].includes(u.role)
-      )
-      .map((u) => ({
-        id: u.id,
-        name: u.name,
-        role: u.role,
-        lastActive: Date.now(),
-      }));
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE_URL}/users?role=responder`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
 
-    setResponders(responderUsers);
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(payload?.message || "Failed to fetch responders.");
+        }
+
+        const users = Array.isArray(payload?.data) ? payload.data : [];
+        const responderUsers = users
+          .filter((u) => u.role === "responder")
+          .map((u) => ({
+            id: u.id || u._id,
+            name: u.name,
+            role: u.role,
+          }))
+          .filter((u) => u.id && u.name);
+
+        setResponders(responderUsers);
+      } catch (err) {
+        setResponders([]);
+        setRespondersError(err?.message || "Failed to fetch responders.");
+      } finally {
+        setLoadingResponders(false);
+      }
+    };
+
+    loadResponders();
   }, []);
 
   // ================= BUILD STATS =================
@@ -114,6 +145,9 @@ export default function Responders() {
     return top;
   }, [responderStats]);
 
+  const pendingIncidents = incidents.filter((i) => i.status === "PENDING");
+  const defaultResponderId = responders[0]?.id || "";
+
   return (
     <div className="space-y-8">
 
@@ -125,6 +159,78 @@ export default function Responders() {
           Operational workload & performance intelligence.
         </p>
       </div>
+
+      {respondersError && (
+        <div className="bg-red-500/10 border border-red-500/20 text-red-300 rounded-xl p-4 text-sm">
+          {respondersError}
+        </div>
+      )}
+
+      {pendingIncidents.length > 0 && (
+        <div className="bg-[#121f32] rounded-2xl border border-blue-500/10 overflow-hidden shadow-xl p-6">
+          <h2 className="text-lg font-bold text-white mb-4">
+            Pending Incidents (Assign)
+          </h2>
+
+          <div className="space-y-3">
+            {pendingIncidents.map((incident) => {
+              const selectedId =
+                selectedAssigneeByIncidentId[incident.id] ||
+                defaultResponderId;
+
+              return (
+                <div
+                  key={incident.id}
+                  className="flex items-center justify-between gap-4 bg-[#0f1b2a] border border-blue-500/10 rounded-xl p-4"
+                >
+                  <div>
+                    <p className="text-xs text-blue-400 font-bold">
+                      #{incident.id}
+                    </p>
+                    <p className="text-sm text-white font-semibold mt-1">
+                      {incident.title}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={selectedId}
+                      onChange={(e) =>
+                        setSelectedAssigneeByIncidentId((prev) => ({
+                          ...prev,
+                          [incident.id]: e.target.value,
+                        }))
+                      }
+                      className="bg-[#0f1b2a] text-white text-xs p-2 rounded-lg border border-blue-500/10"
+                      disabled={!defaultResponderId || loadingResponders}
+                    >
+                      {responders.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <button
+                      onClick={() =>
+                        overrideAssign(
+                          incident.id,
+                          selectedAssigneeByIncidentId[incident.id] ||
+                            defaultResponderId
+                        )
+                      }
+                      disabled={!defaultResponderId || loadingResponders}
+                      className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-lg font-semibold transition disabled:opacity-50"
+                    >
+                      {loadingResponders ? "Loading..." : "Assign"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="bg-[#121f32] rounded-2xl border border-blue-500/10 overflow-hidden shadow-xl">
 
@@ -207,23 +313,37 @@ export default function Responders() {
 
                   <td className="px-6 py-4">
                     {activeIncidents.map((incident) => (
-                      <select
-                        key={incident.id}
-                        onChange={(e) =>
-                          overrideAssign(
-                            incident.id,
-                            e.target.value
-                          )
-                        }
-                        className="bg-[#0f1b2a] text-white text-xs p-2 rounded-lg border border-blue-500/10"
-                        defaultValue={responder.name}
-                      >
-                        {responders.map((r) => (
-                          <option key={r.id} value={r.name}>
-                            {r.name}
-                          </option>
-                        ))}
-                      </select>
+                      <div key={incident.id} className="flex items-center gap-2">
+                        <select
+                          onChange={(e) =>
+                            setSelectedAssigneeByIncidentId((prev) => ({
+                              ...prev,
+                              [incident.id]: e.target.value,
+                            }))
+                          }
+                          className="bg-[#0f1b2a] text-white text-xs p-2 rounded-lg border border-blue-500/10"
+                          defaultValue={responder.id}
+                        >
+                          {responders.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {r.name}
+                            </option>
+                          ))}
+                        </select>
+
+                        <button
+                          onClick={() =>
+                            overrideAssign(
+                              incident.id,
+                              selectedAssigneeByIncidentId[incident.id] ||
+                                responder.id
+                            )
+                          }
+                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-lg font-semibold transition"
+                        >
+                          Assign
+                        </button>
+                      </div>
                     ))}
                   </td>
                 </tr>

@@ -4,13 +4,14 @@ import { useAuth } from "../../context/AuthContext";
 import logo from "../../assets/logo.png";
 
 export default function Login() {
+  const API_BASE_URL = "http://localhost:5000/api";
   const [role, setRole] = useState("victim");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const { login } = useAuth();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!email || !password) {
@@ -18,23 +19,49 @@ export default function Login() {
       return;
     }
 
-    // 🔐 Get stored users
-    const users = JSON.parse(localStorage.getItem("users")) || [];
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-    const foundUser = users.find(
-      (u) =>
-        u.email === email &&
-        u.password === password &&
-        u.role === role
-    );
+      const payload = await res.json().catch(() => ({}));
 
-    if (!foundUser) {
-      alert("Invalid credentials or role mismatch");
-      return;
+      if (!res.ok) {
+        throw new Error(payload?.message || "Invalid credentials.");
+      }
+
+      const token = payload?.data?.token;
+      const user = payload?.data?.user;
+
+      if (!token || !user || user.role !== role) {
+        alert("Invalid credentials or role mismatch");
+        return;
+      }
+
+      // Keep existing admin/responder UI populated
+      // (legacy usage of localStorage "users").
+      const stored = JSON.parse(localStorage.getItem("users") || "[]");
+      const idx = stored.findIndex((u) => u.email === user.email);
+      if (idx >= 0) {
+        stored[idx] = { ...stored[idx], ...user };
+      } else {
+        stored.push(user);
+      }
+      localStorage.setItem("users", JSON.stringify(stored));
+
+      // ✅ Login (AuthContext handles redirect)
+      login({ token, user });
+    } catch (err) {
+      const msg =
+        err?.message === "Failed to fetch"
+          ? "Network error. Please try again."
+          : err?.message || "Login failed.";
+      alert(msg);
     }
-
-    // ✅ Login (AuthContext handles redirect)
-    login(foundUser);
   };
 
   return (
@@ -56,7 +83,7 @@ export default function Login() {
             ResQHub
           </h1>
           <p className="text-gray-400 text-sm mt-1">
-            Disaster Management & Response
+            Incident Response & Coordination Platform
           </p>
         </div>
 

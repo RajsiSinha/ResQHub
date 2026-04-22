@@ -1,3 +1,4 @@
+/* eslint react-refresh/only-export-components: off */
 import { createContext, useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -6,15 +7,21 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const navigate = useNavigate();
 
-  // 🔁 Restore user from localStorage ONCE
   const [user, setUser] = useState(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+
     const savedUser = localStorage.getItem("currentUser");
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  // 🔐 LOGIN
-  const login = (userData) => {
+  // 🔐 LOGIN (session manager)
+  // Accepts: { token, user } from backend auth responses.
+  const login = ({ token, user: userData }) => {
+    if (!token || !userData) return;
+
     setUser(userData);
+    localStorage.setItem("token", token);
     localStorage.setItem("currentUser", JSON.stringify(userData));
 
     // Role-based redirect
@@ -36,6 +43,7 @@ export function AuthProvider({ children }) {
   // 🔓 LOGOUT
   const logout = () => {
     setUser(null);
+    localStorage.removeItem("token");
     localStorage.removeItem("currentUser");
     navigate("/login");
   };

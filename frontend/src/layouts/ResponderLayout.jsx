@@ -1,10 +1,9 @@
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import Logo from "../assets/logo.png";
 import { useEffect, useState, useRef } from "react";
+import { useAuth } from "../context/AuthContext";
 
 export default function ResponderLayout() {
-
-  const navigate = useNavigate();
   const dropdownRef = useRef(null);
 
   const [onlineCount, setOnlineCount] = useState(0);
@@ -71,9 +70,10 @@ export default function ResponderLayout() {
       document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const { logout } = useAuth();
+
   const handleLogout = () => {
-    localStorage.removeItem("currentUser");
-    navigate("/login");
+    logout();
   };
 
   return (

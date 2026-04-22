@@ -1,14 +1,29 @@
-const express = require("express");
-const app = express();
+const http = require("http");
+const dotenv = require("dotenv");
 
-app.use(express.json());
+const app = require("./app");
+const connectDatabase = require("./config/db");
+const initializeSocket = require("./utils/socket");
 
-app.get("/", (req, res) => {
-  res.send("🚀 ResQHub Backend Running Successfully");
-});
+dotenv.config();
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await connectDatabase();
+    console.log("MongoDB connected");
+
+    const server = http.createServer(app);
+    initializeSocket(server);
+
+    server.listen(PORT, () => {
+      console.log(`Server running at http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error.message);
+    process.exit(1);
+  }
+};
+
+startServer();

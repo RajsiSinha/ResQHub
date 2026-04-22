@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useIncidents } from "../../context/IncidentContext";
 
 export default function VictimRegistry() {
-  const { incidents, updateStatus } = useIncidents();
+  const { incidents } = useIncidents();
 
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -169,14 +169,9 @@ export default function VictimRegistry() {
                   </td>
 
                   <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() =>
-                        updateStatus(incident.id, "RESOLVED")
-                      }
-                      className="px-3 py-1 text-xs rounded-lg bg-green-600 hover:bg-green-700 transition"
-                    >
-                      Resolve
-                    </button>
+                  <span className="px-3 py-1 text-xs rounded-lg bg-slate-700 text-slate-400">
+                    —
+                  </span>
                   </td>
                 </tr>
               ))

@@ -10,11 +10,10 @@ export default function ResponderDashboard() {
 
   const { incidents, updateStatus } = useIncidents();
 
-  const [statusTab, setStatusTab] = useState("PENDING");
+  const [statusTab, setStatusTab] = useState("ASSIGNED");
   const [severityFilter, setSeverityFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [highlightedId, setHighlightedId] = useState(null);
-  const [previousCount, setPreviousCount] = useState(incidents.length);
   const [lastPlayedId, setLastPlayedId] = useState(null);
 
   const audioRef = useRef(null);
@@ -26,8 +25,6 @@ export default function ResponderDashboard() {
 
   // 📊 Smart Status Counts
   const counts = {
-    PENDING: incidents.filter(i => i.status === "PENDING").length,
-
     ASSIGNED: incidents.filter(
       i =>
         i.status === "ASSIGNED" &&
@@ -57,8 +54,6 @@ export default function ResponderDashboard() {
         incident.assignedTo === currentResponder?.name
       );
     }
-
-    return incident.status === statusTab;
   });
 
   // 🔎 Severity + Search Filter
@@ -123,7 +118,7 @@ export default function ResponderDashboard() {
 
           {/* STATUS TABS */}
           <div className="flex gap-3">
-            {["PENDING", "ASSIGNED", "RESOLVED"].map((status) => (
+            {["ASSIGNED", "RESOLVED"].map((status) => (
               <button
                 key={status}
                 onClick={() => setStatusTab(status)}
@@ -229,22 +224,6 @@ export default function ResponderDashboard() {
                 )}
 
                 {/* ACTION BUTTONS */}
-                {incident.status === "PENDING" && (
-                  <button
-                    onClick={() => {
-                      updateStatus(
-                        incident.id,
-                        "ASSIGNED",
-                        currentResponder?.name
-                      );
-                      setStatusTab("ASSIGNED");
-                    }}
-                    className="mt-5 w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-semibold transition"
-                  >
-                    ACCEPT CASE
-                  </button>
-                )}
-
                 {incident.status === "ASSIGNED" &&
                   incident.assignedTo === currentResponder?.name && (
                     <button

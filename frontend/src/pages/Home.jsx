@@ -279,7 +279,7 @@ export default function Home() {
   <div className="relative z-10">
 
     <span className="text-xs bg-blue-600/20 text-blue-400 px-4 py-1 rounded-full font-semibold tracking-wide">
-      LIVE DISASTER RESPONSE NETWORK
+      LIVE INCIDENT RESPONSE SYSTEM
     </span>
 
     <h1 className="text-3xl md:text-5xl font-bold mt-6 leading-tight">
