@@ -67,7 +67,7 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0b1c2d] to-[#091420] text-white flex items-center justify-center px-4 py-10">
       
-      <div className="w-full max-w-md bg-[#0f2235] rounded-2xl p-8 shadow-2xl border border-blue-900">
+      <div className="w-full max-w-md bg-[#0f2235] rounded-2xl p-6 sm:p-8 shadow-2xl border border-blue-900">
         
         {/* Logo */}
         <div className="text-center mb-8">
@@ -105,7 +105,7 @@ export default function Login() {
         <form onSubmit={handleSubmit}>
           
           {/* Role Selection */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
             {["victim", "responder", "admin"].map((r) => (
               <button
                 type="button"

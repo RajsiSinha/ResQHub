@@ -8,13 +8,14 @@ import { useIncidents } from "../../context/IncidentContext";
 
 export default function ResponderDashboard() {
 
-  const { incidents, updateStatus } = useIncidents();
+  const { incidents, updateStatus, requesting } = useIncidents();
 
   const [statusTab, setStatusTab] = useState("ASSIGNED");
   const [severityFilter, setSeverityFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [highlightedId, setHighlightedId] = useState(null);
   const [lastPlayedId, setLastPlayedId] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
 
   const audioRef = useRef(null);
 
@@ -100,6 +101,32 @@ export default function ResponderDashboard() {
 
 }, [incidents]);
 
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation([position.coords.latitude, position.coords.longitude]);
+      },
+      () => {
+        setUserLocation(null);
+      }
+    );
+  }, []);
+
+  const assignedForResponder = incidents.filter(
+    (incident) =>
+      incident.status === "ASSIGNED" &&
+      incident.assignedTo === currentResponder?.name &&
+      incident.location?.lat != null &&
+      incident.location?.lng != null
+  );
+
+  const activeRouteIncident = assignedForResponder[0] || null;
+  const incidentLocation = activeRouteIncident
+    ? [activeRouteIncident.location.lat, activeRouteIncident.location.lng]
+    : null;
+
 
   return (
     <div className="flex flex-col w-full h-full bg-gradient-to-br from-[#0b1420] to-[#0e1c2f]">
@@ -107,22 +134,22 @@ export default function ResponderDashboard() {
       {/* 🔊 Sound Alert */}
       <audio ref={audioRef} src="/alert.wav" preload="auto" />
 
-      <div className="flex flex-1">
+      <div className="flex flex-col lg:flex-row flex-1 min-h-0">
 
         {/* ================= LEFT PANEL ================= */}
-        <div className="w-[460px] bg-[#0f1b2a] border-r border-blue-500/10 p-6 space-y-4 overflow-y-auto relative z-20">
+        <div className="w-full lg:w-[460px] bg-[#0f1b2a] lg:border-r border-blue-500/10 p-4 sm:p-6 space-y-4 overflow-y-auto relative z-20 max-h-[50vh] lg:max-h-none">
 
           <h2 className="text-slate-400 text-sm font-semibold tracking-wide">
             INCIDENT CONTROL CENTER
           </h2>
 
           {/* STATUS TABS */}
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             {["ASSIGNED", "RESOLVED"].map((status) => (
               <button
                 key={status}
                 onClick={() => setStatusTab(status)}
-                className={`px-4 py-2 text-xs font-bold rounded-full transition flex items-center gap-2 ${
+                className={`px-3 py-2 sm:px-4 text-xs font-bold rounded-full transition flex items-center gap-2 ${
                   statusTab === status
                     ? "bg-blue-600 text-white"
                     : "bg-[#162435] text-slate-400"
@@ -146,12 +173,12 @@ export default function ResponderDashboard() {
           />
 
           {/* SEVERITY FILTER */}
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             {["ALL", "HIGH", "MEDIUM", "LOW"].map((level) => (
               <button
                 key={level}
                 onClick={() => setSeverityFilter(level)}
-                className={`px-4 py-2 text-xs font-bold rounded-full transition ${
+                className={`px-3 py-2 sm:px-4 text-xs font-bold rounded-full transition ${
                   severityFilter === level
                     ? "bg-purple-600 text-white"
                     : "bg-[#162435] text-slate-400"
@@ -248,9 +275,10 @@ export default function ResponderDashboard() {
                       onClick={() =>
                         updateStatus(incident.id, "RESOLVED")
                       }
-                      className="mt-5 w-full bg-green-600 hover:bg-green-700 py-3 rounded-xl font-semibold transition"
+                      disabled={requesting}
+                      className="mt-5 w-full bg-green-600 hover:bg-green-700 py-3 rounded-xl font-semibold transition disabled:opacity-60"
                     >
-                      MARK RESOLVED
+                      {requesting ? "Loading..." : "MARK RESOLVED"}
                     </button>
                   )}
               </div>
@@ -260,13 +288,16 @@ export default function ResponderDashboard() {
         </div>
 
         {/* ================= MAP ================= */}
-        <div className="flex-1 relative min-h-[650px]">
+        <div className="flex-1 relative min-h-[420px] md:min-h-[560px] lg:min-h-[650px]">
           <div className="absolute inset-0 z-0">
-            <MapView incidents={incidents} />
+            <MapView incidents={assignedForResponder} userLocation={userLocation} />
           </div>
 
           <LayerToggle />
-          <RoutingCard />
+          <RoutingCard
+            userLocation={userLocation}
+            incidentLocation={incidentLocation}
+          />
           <BottomStats incidents={incidents} />
         </div>
 
