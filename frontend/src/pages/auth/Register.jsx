@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import logo from "../../assets/logo.png";
 
 export default function Register() {
-  const API_BASE_URL = "http://localhost:5000/api";
+  const API_BASE_URL = import.meta.env.VITE_API_URL + "/api";
   const [role, setRole] = useState("victim");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
