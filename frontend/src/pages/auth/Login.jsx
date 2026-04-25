@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { apiRequest } from "../../utils/api"; 
 import logo from "../../assets/logo.png";
 
 export default function Login() {
-  const API_BASE_URL = import.meta.env.VITE_API_URL + "/api";
   const [role, setRole] = useState("victim");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,19 +20,11 @@ export default function Login() {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/login`, {
+      // ✅ FIXED: using apiRequest instead of fetch
+      const payload = await apiRequest("/api/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ email, password }),
       });
-
-      const payload = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error(payload?.message || "Invalid credentials.");
-      }
 
       const token = payload?.data?.token;
       const user = payload?.data?.user;
@@ -42,8 +34,7 @@ export default function Login() {
         return;
       }
 
-      // Keep existing admin/responder UI populated
-      // (legacy usage of localStorage "users").
+      // keep existing behavior (unchanged)
       const stored = JSON.parse(localStorage.getItem("users") || "[]");
       const idx = stored.findIndex((u) => u.email === user.email);
       if (idx >= 0) {
@@ -53,7 +44,6 @@ export default function Login() {
       }
       localStorage.setItem("users", JSON.stringify(stored));
 
-      // ✅ Login (AuthContext handles redirect)
       login({ token, user });
     } catch (err) {
       const msg =
@@ -69,33 +59,22 @@ export default function Login() {
       
       <div className="w-full max-w-md bg-[#0f2235] rounded-2xl p-6 sm:p-8 shadow-2xl border border-blue-900">
         
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-blue-900/40">
-            <img
-              src={logo}
-              alt="ResQHub Logo"
-              className="w-16 mx-auto drop-shadow-lg"
-            />
+            <img src={logo} alt="ResQHub Logo" className="w-16 mx-auto drop-shadow-lg" />
           </div>
 
-          <h1 className="text-2xl font-bold mt-5 tracking-wide">
-            ResQHub
-          </h1>
+          <h1 className="text-2xl font-bold mt-5 tracking-wide">ResQHub</h1>
           <p className="text-gray-400 text-sm mt-1">
             Incident Response & Coordination Platform
           </p>
         </div>
 
-        {/* Tabs */}
         <div className="flex justify-center mb-6 border-b border-gray-700">
           <button className="px-6 py-2 border-b-2 border-blue-500 text-blue-400">
             Log In
           </button>
-          <Link
-            to="/register"
-            className="px-6 py-2 text-gray-400 hover:text-white"
-          >
+          <Link to="/register" className="px-6 py-2 text-gray-400 hover:text-white">
             Register
           </Link>
         </div>
@@ -104,7 +83,6 @@ export default function Login() {
 
         <form onSubmit={handleSubmit}>
           
-          {/* Role Selection */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
             {["victim", "responder", "admin"].map((r) => (
               <button
@@ -123,7 +101,6 @@ export default function Login() {
             ))}
           </div>
 
-          {/* Email */}
           <div className="mb-4">
             <label className="block text-sm mb-2 text-gray-300">
               Email Address
@@ -137,7 +114,6 @@ export default function Login() {
             />
           </div>
 
-          {/* Password */}
           <div className="mb-6">
             <label className="block text-sm mb-2 text-gray-300">
               Password
@@ -151,7 +127,6 @@ export default function Login() {
             />
           </div>
 
-          {/* Button */}
           <button
             type="submit"
             className="w-full bg-blue-600 hover:bg-blue-700 transition-all p-3 rounded-xl font-semibold shadow-lg"

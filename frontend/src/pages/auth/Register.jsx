@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { apiRequest } from "../../utils/api"; 
 import logo from "../../assets/logo.png";
 
 export default function Register() {
-  const API_BASE_URL = import.meta.env.VITE_API_URL + "/api";
   const [role, setRole] = useState("victim");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,21 +25,14 @@ export default function Register() {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/register`, {
+      // ✅ FIXED: using apiRequest
+      const payload = await apiRequest("/api/auth/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ name, email, password, role }),
       });
 
-      const payload = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error(payload?.message || "Registration failed.");
-      }
-
       const user = payload?.data?.user;
+
       if (user) {
         const stored = JSON.parse(localStorage.getItem("users") || "[]");
         const idx = stored.findIndex((u) => u.email === user.email);
@@ -67,32 +60,19 @@ export default function Register() {
 
       <div className="w-full max-w-md bg-[#0f2235] rounded-2xl p-6 sm:p-8 shadow-2xl border border-blue-900">
 
-        {/* Logo */}
-<div className="text-center mb-8">
-  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-blue-900/40">
-    
-    <img
-      src={logo}
-      alt="ResQHub Logo"
-      className="w-16 mx-auto drop-shadow-lg"
-    />
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-blue-900/40">
+            <img src={logo} alt="ResQHub Logo" className="w-16 mx-auto drop-shadow-lg" />
+          </div>
 
-  </div>
+          <h1 className="text-2xl font-bold mt-5 tracking-wide">ResQHub</h1>
+          <p className="text-gray-400 text-sm mt-1">
+            Disaster Management & Response
+          </p>
+        </div>
 
-  <h1 className="text-2xl font-bold mt-5 tracking-wide">
-    ResQHub
-  </h1>
-  <p className="text-gray-400 text-sm mt-1">
-    Disaster Management & Response
-  </p>
-</div>
-
-        {/* Tabs */}
         <div className="flex justify-center mb-6 border-b border-gray-700">
-          <Link
-            to="/login"
-            className="px-6 py-2 text-gray-400 hover:text-white"
-          >
+          <Link to="/login" className="px-6 py-2 text-gray-400 hover:text-white">
             Log In
           </Link>
           <button className="px-6 py-2 border-b-2 border-blue-500 text-blue-400">
@@ -107,7 +87,6 @@ export default function Register() {
 
         <form onSubmit={handleRegister}>
 
-          {/* Name (New Field Added, UI Safe) */}
           <div className="mb-4">
             <label className="block text-sm mb-2 text-gray-300">
               Full Name
@@ -121,26 +100,24 @@ export default function Register() {
             />
           </div>
 
-          {/* Role Selection */}
-<div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
-  {["victim", "responder", "admin"].map((r) => (
-    <button
-      type="button"
-      key={r}
-      onClick={() => setRole(r)}
-      className={`p-3 sm:p-4 rounded-xl border transition-all capitalize font-medium
-        ${
-          role === r
-            ? "border-blue-500 bg-blue-600/20 text-blue-400"
-            : "border-gray-700 bg-[#132a40] hover:border-blue-500"
-        }`}
-    >
-      {r}
-    </button>
-  ))}
-</div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+            {["victim", "responder", "admin"].map((r) => (
+              <button
+                type="button"
+                key={r}
+                onClick={() => setRole(r)}
+                className={`p-3 sm:p-4 rounded-xl border transition-all capitalize font-medium
+                  ${
+                    role === r
+                      ? "border-blue-500 bg-blue-600/20 text-blue-400"
+                      : "border-gray-700 bg-[#132a40] hover:border-blue-500"
+                  }`}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
 
-          {/* Email (UNCHANGED UI, now controlled) */}
           <div className="mb-4">
             <label className="block text-sm mb-2 text-gray-300">
               Email Address
@@ -154,7 +131,6 @@ export default function Register() {
             />
           </div>
 
-          {/* Password (UNCHANGED UI, now controlled) */}
           <div className="mb-2">
             <label className="block text-sm mb-2 text-gray-300">
               Password
@@ -172,7 +148,6 @@ export default function Register() {
             Must be at least 8 characters
           </p>
 
-          {/* Submit Button (UNCHANGED UI) */}
           <button
             type="submit"
             className="w-full bg-blue-600 hover:bg-blue-700 transition-all p-3 rounded-xl font-semibold shadow-lg"
@@ -184,10 +159,7 @@ export default function Register() {
 
         <p className="text-sm text-gray-400 mt-6 text-center">
           Already have an account?{" "}
-          <Link
-            to="/login"
-            className="text-blue-400 cursor-pointer hover:underline"
-          >
+          <Link to="/login" className="text-blue-400 hover:underline">
             Log In
           </Link>
         </p>
